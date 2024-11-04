@@ -2,15 +2,20 @@ from flask import Flask, jsonify, request
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+import os
+from config import get_config
 
+# Create the Flask app instance
 app = Flask(__name__)
+
+# Apply configuration from config.py based on the environment
+app.config.from_object(get_config(os.environ.get('FLASK_ENV', 'development')))
+
+# Enable CORS
 CORS(app)
 
-# Configure SQLite database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///metrics.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Initialize SQLAlchemy with the configured database URI
 db = SQLAlchemy(app)
-
 
 # Metric model for the database
 class Metric(db.Model):
@@ -19,11 +24,9 @@ class Metric(db.Model):
     value = db.Column(db.Integer, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-
 # Initialize the database
 with app.app_context():
     db.create_all()
-
 
 # Endpoint to capture operational challenges and metrics
 @app.route('/api/metrics', methods=['POST'])
@@ -45,7 +48,6 @@ def add_metric():
         "timestamp": new_metric.timestamp.strftime('%Y-%m-%d %H:%M:%S')
     }), 201
 
-
 # Endpoint to retrieve key performance metrics
 @app.route('/api/metrics', methods=['GET'])
 def get_metrics():
@@ -57,7 +59,6 @@ def get_metrics():
     } for metric in metrics]
 
     return jsonify(metrics_list), 200
-
 
 # Automation: Calculate performance insights
 @app.route('/api/insights', methods=['GET'])
@@ -86,6 +87,5 @@ def get_insights():
         "suggested_action": suggested_action
     }), 200
 
-
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
